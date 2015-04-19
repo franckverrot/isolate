@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+#   isolate - Prevent processes from accessing specific resources
+#   Copyright (C) 2015 Franck Verrot <franck@verrot.fr>
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+usage() {
+  echo "usage: $0 [-i] [-f acl-file-path] \"your command and options\""
+  echo -e "\nError: illegal number of parameters. Expected at least 1, got $#"
+  exit 1
+}
+
+verbose=0
+interactive=0
+
+while getopts "Vif:" o; do
+  case "${o}" in
+    V)
+      verbose=1
+      ;;
+    i)
+      interactive=1
+      ;;
+    f)
+      acl_path=${OPTARG}
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+COMMAND=$@
+UNAME=`uname`
+
+if [[ $COMMAND == "" ]]; then
+  usage
+fi
+
+
+if [ $verbose -ne 0 ]; then
+  echo Executing "$COMMAND"
+  echo With options:
+  echo -e "\t-i = $interactive"
+  echo -e "\t-f = $acl_path"
+  echo -e "\t-V = $verbose"
+fi
+
+lib_path=""
+possible_paths="/usr/lib/libisolate.dylib /usr/lib/libisolate.so ./libisolate.dylib ./libisolate.so"
+for p in $possible_paths; do
+  if [ $verbose == 1 ]; then
+    echo -n "Trying to find libisolate.dylib in $p..."
+  fi
+  if [ -f $p ]; then
+    lib_path=$p
+
+    if [ $verbose == 1 ]; then
+      echo "[OK]"
+    fi
+    break
+  else
+    if [ $verbose == 1 ]; then
+      echo "[KO]"
+    fi
+  fi
+done
+
+if [[ $lib_path == "" ]]; then
+  echo Cannot find shared library libisolate.lib
+  exit 1
+fi
+
+case $UNAME in
+  Darwin)
+    eval \
+      ACL_INTERACTIVE=$interactive \
+      ACL_PATH=$acl_path \
+      DYLD_FORCE_FLAT_NAMESPACE=1 \
+      DYLD_INSERT_LIBRARIES=$lib_path \
+      $COMMAND
+    ret=$?;;
+  Linux)
+    eval \
+      ACL_INTERACTIVE=$interactive \
+      ACL_PATH=$acl_path \
+      LD_PRELOAD=$lib_path \
+      LD_LIBRARY_PATH=. \
+      $COMMAND
+    ret=$?;;
+  *)
+    echo Unsupported architecture $UNAME. Aborting...
+    ret=-1;;
+esac
+exit $ret
