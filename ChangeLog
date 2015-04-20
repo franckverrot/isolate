@@ -1,3 +1,8 @@
+# (unreleased)
+
+  * Add support for `unlinkat` (used by `rm` for instance) to make simple
+    commands like `isolate rm foo` working
+
 # v1.0.0
 
   * Initial release (supports `open` and `unlink`)

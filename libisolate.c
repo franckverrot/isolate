@@ -128,6 +128,15 @@ int unlink(const char *path) {
   return (*real_unlink_with_mode)(path);
 }
 
+int unlinkat(int dirfd, const char *pathname, int flags) {
+  check_wl(pathname, "remove");
+
+  int (*real_unlink_with_mode)(int, const char *, int);
+
+  real_unlink_with_mode = dlsym(RTLD_NEXT, "unlinkat");
+  return (*real_unlink_with_mode)(dirfd, pathname, flags);
+}
+
 int open(const char *pathname, int flags, ...) {
   va_list ap;
   mode_t mode;
