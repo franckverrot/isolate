@@ -122,10 +122,10 @@ void check_wl(const char *pathname, const char *details) {
 int unlink(const char *path) {
   check_wl(path, "remove");
 
-  int (*real_open_with_mode)(const char *);
+  int (*real_unlink_with_mode)(const char *);
 
-  real_open_with_mode = dlsym(RTLD_NEXT, "unlink");
-  return (*real_open_with_mode)(path);
+  real_unlink_with_mode = dlsym(RTLD_NEXT, "unlink");
+  return (*real_unlink_with_mode)(path);
 }
 
 int open(const char *pathname, int flags, ...) {
